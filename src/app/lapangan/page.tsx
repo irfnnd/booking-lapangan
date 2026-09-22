@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { signOut, useSession } from "@/lib/auth-client";
 
 type Lapangan = {
@@ -87,9 +88,11 @@ const kategori = [
 
 export default function LapanganPage() {
   const { data: session, isPending } = useSession();
+  console.log("SESSION USER:", session?.user);
 
   const [search, setSearch] = useState("");
   const [kategoriAktif, setKategoriAktif] = useState("Semua");
+  const [menuAkunTerbuka, setMenuAkunTerbuka] = useState(false);
 
   const lapanganTerfilter = useMemo(() => {
     return daftarLapangan.filter((lapangan) => {
@@ -166,21 +169,76 @@ export default function LapanganPage() {
           {/* AUTH BUTTON */}
           {!isPending &&
             (session ? (
-              <button
-                onClick={handleLogout}
-                className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600"
-              >
-                Keluar
-              </button>
+              <div className="relative">
+                {/* FOTO PROFIL */}
+                <button
+                  type="button"
+                  onClick={() => setMenuAkunTerbuka(!menuAkunTerbuka)}
+                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-lime-400/50 bg-white/[0.06] transition hover:border-lime-400"
+                  aria-label="Menu akun"
+                >
+                  {session?.user?.image ? (
+                    <Image
+                      src={session.user.image}
+                      alt="Foto profil"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-lime-400 text-sm font-bold text-black">
+                      {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
+                </button>
+
+                {/* MENU AKUN */}
+                {menuAkunTerbuka && (
+                  <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#101a15] shadow-2xl">
+                    {/* PROFIL AKUN */}
+                    <div className="border-b border-white/10 px-4 py-3">
+                      <p className="text-xs text-white/40">
+                        Profil Akun
+                      </p>
+
+                      <p className="mt-1 truncate text-sm font-semibold text-white">
+                        {session.user?.name || "Pengguna"}
+                      </p>
+
+                      <p className="mt-1 truncate text-xs text-white/40">
+                        {session.user?.email || ""}
+                      </p>
+                    </div>
+
+                    {/* KELUAR */}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full border-t border-white/10 px-4 py-3 text-left text-sm font-semibold text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      Keluar
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
-              <Link
-                href="/login"
-                className="rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-300"
-              >
-                Masuk
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/login"
+                  className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:border-lime-400 hover:text-lime-400"
+                >
+                  Masuk
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-300"
+                >
+                  Daftar
+                </Link>
+              </div>
             ))}
-        </div>
+          </div>
       </nav>
 
       {/* HEADER */}
