@@ -42,7 +42,7 @@ const navItems = [
   },
   {
     name: "Data Pengguna",
-    href: "/admin/pengguna",
+    href: "/admin/data_pengguna",
     icon: Users,
   },
   {
