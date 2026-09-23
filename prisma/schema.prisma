@@ -79,6 +79,22 @@ model Verification {
   @@map("verification")
 }
 
+model Lapangan {
+  id          String  @id @default(uuid())
+  name        String
+  category    String  @default("Futsal")
+  description String?
+  location    String
+  price       Float
+  picture_url String?
+  status      String  @default("Aktif")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+
 model Customer {
   id          String  @id @default(uuid())
   userId      String  @unique
@@ -106,18 +122,6 @@ model Admin {
   updatedAt DateTime @updatedAt
 }
 
-model Lapangan {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-  location    String
-  price       Float
-  picture_url String?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
-}
 
 enum StatusBooking {
   PENDING

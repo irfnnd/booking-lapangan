@@ -1,74 +1,85 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Plus,
   Search,
   Edit3,
   Trash2,
   MapPin,
-  Tag,
   CheckCircle2,
   AlertTriangle,
-  XCircle,
 } from "lucide-react";
 import LapanganFormModal, { LapanganFormData } from "./LapanganFormModal";
 
-const initialMockLapangan: LapanganFormData[] = [
-  {
-    id: "lap-1",
-    name: "Lapangan Futsal Vinyl A",
-    category: "Futsal",
-    location: "Gedung A - Lt. 1",
-    price: 120000,
-    picture_url:
-      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=60",
-    description: "Lantai Interlock standar internasional, lampu LED 400W.",
-    status: "Aktif",
-  },
-  {
-    id: "lap-2",
-    name: "Lapangan Badminton Synthetics 1",
-    category: "Badminton",
-    location: "Gedung B - Lt. 2",
-    price: 80000,
-    picture_url:
-      "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=60",
-    description: "Karpet Yonex original, bebas silau matahari, AC hall.",
-    status: "Aktif",
-  },
-  {
-    id: "lap-3",
-    name: "Lapangan Basket Interlock B",
-    category: "Basketball",
-    location: "Gedung A - Lt. 2",
-    price: 150000,
-    picture_url:
-      "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&auto=format&fit=crop&q=60",
-    description: "Ring basket hidrolik, papan skor digital, tribun penonton.",
-    status: "Aktif",
-  },
-  {
-    id: "lap-4",
-    name: "Lapangan Mini Soccer Sintetis",
-    category: "Mini Soccer",
-    location: "Outdoor Field 1",
-    price: 250000,
-    picture_url:
-      "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=500&auto=format&fit=crop&q=60",
-    description: "Rumput sintetis kualitas FIFA, jaring pengaman keliling.",
-    status: "Pemeliharaan",
-  },
-];
-
 export default function LapanganTable() {
-  const [lapanganList, setLapanganList] = useState<LapanganFormData[]>(initialMockLapangan);
+  const [lapanganList, setLapanganList] = useState<LapanganFormData[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLapangan, setEditingLapangan] = useState<LapanganFormData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const categories = ["Semua", "Futsal", "Badminton", "Basketball", "Mini Soccer", "Tenis"];
+
+  const fetchLapangan = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const response = await fetch("/api/lapangan");
+
+      let data: any[] = [];
+
+      try {
+        data = await response.json();
+      } catch {
+        data = [];
+      }
+
+      if (!response.ok) {
+        const message =
+          typeof data === "object" && data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Gagal mengambil data lapangan";
+
+        throw new Error(message);
+      }
+
+      if (!Array.isArray(data)) {
+        throw new Error("Format data lapangan tidak valid.");
+      }
+
+      const mappedData: LapanganFormData[] = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category || "Futsal",
+        location: item.location,
+        price: Number(item.price),
+        picture_url: item.picture_url || "",
+        description: item.description || "",
+        status: item.status === "Tersedia" || item.status === "Tidak Tersedia" ? item.status : "Tersedia",
+      }));
+
+      setLapanganList(mappedData);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Gagal memuat data lapangan dari server."
+      );
+      setLapanganList([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLapangan();
+  }, []);
 
   const filteredLapangan = lapanganList.filter((item) => {
     const matchesSearch =
@@ -80,27 +91,90 @@ export default function LapanganTable() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleCreateOrUpdate = (data: LapanganFormData) => {
-    if (editingLapangan) {
-      // Edit
-      setLapanganList((prev) =>
-        prev.map((item) => (item.id === editingLapangan.id ? { ...data, id: editingLapangan.id } : item))
-      );
-    } else {
-      // Create
-      const newItem: LapanganFormData = {
-        ...data,
-        id: `lap-${Date.now()}`,
+  const handleCreateOrUpdate = async (data: LapanganFormData) => {
+    try {
+      const payload = {
+        name: data.name,
+        category: data.category,
+        location: data.location,
+        price: Number(data.price),
+        picture_url: data.picture_url || "",
+        description: data.description || "",
+        status: data.status,
       };
-      setLapanganList((prev) => [newItem, ...prev]);
+
+      const url = editingLapangan ? `/api/lapangan/${editingLapangan.id}` : "/api/lapangan";
+      const method = editingLapangan ? "PATCH" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      let serverData: any = null;
+      try {
+        serverData = await response.json();
+      } catch {
+        serverData = null;
+      }
+
+      if (!response.ok) {
+        const message =
+          serverData && typeof serverData === "object" && "error" in serverData && typeof serverData.error === "string"
+            ? serverData.error
+            : "Operasi lapangan gagal";
+        throw new Error(message);
+      }
+
+      await fetchLapangan();
+      setEditingLapangan(null);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err.message : "Gagal menyimpan data lapangan."
+      );
     }
-    setEditingLapangan(null);
   };
 
-  const handleDelete = (id?: string) => {
+  const handleDelete = async (id?: string) => {
     if (!id) return;
-    if (confirm("Apakah Anda yakin ingin menghapus data lapangan ini?")) {
-      setLapanganList((prev) => prev.filter((item) => item.id !== id));
+    const confirmed = window.confirm("Apakah Anda yakin ingin menghapus data lapangan ini?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/lapangan/${id}`, {
+        method: "DELETE",
+      });
+
+      let serverData: any = null;
+      try {
+        serverData = await response.json();
+      } catch {
+        serverData = null;
+      }
+
+      if (!response.ok) {
+        const message =
+          serverData && typeof serverData === "object" && "error" in serverData && typeof serverData.error === "string"
+            ? serverData.error
+            : "Gagal menghapus lapangan";
+        throw new Error(message);
+      }
+
+      await fetchLapangan();
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err.message : "Gagal menghapus lapangan."
+      );
     }
   };
 
@@ -158,9 +232,19 @@ export default function LapanganTable() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
       {/* GRID CARDS OF LAPANGAN */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredLapangan.length === 0 ? (
+        {isLoading ? (
+          <div className="col-span-full rounded-2xl border border-dashed border-gray-300 p-8 text-center text-xs text-gray-400 dark:border-gray-800">
+            Memuat data lapangan...
+          </div>
+        ) : filteredLapangan.length === 0 ? (
           <div className="col-span-full rounded-2xl border border-dashed border-gray-300 p-8 text-center text-xs text-gray-400 dark:border-gray-800">
             Tidak ada lapangan yang ditemukan.
           </div>
@@ -192,12 +276,12 @@ export default function LapanganTable() {
                 {/* STATUS BADGE */}
                 <span
                   className={`absolute top-3 right-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold backdrop-blur-md ${
-                    item.status === "Aktif"
+                    item.status === "Tersedia"
                       ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/30"
                       : "bg-amber-950/80 text-amber-300 border border-amber-500/30"
                   }`}
                 >
-                  {item.status === "Aktif" ? (
+                  {item.status === "Tersedia" ? (
                     <CheckCircle2 className="h-3 w-3" />
                   ) : (
                     <AlertTriangle className="h-3 w-3" />
