@@ -432,23 +432,13 @@ export default function LapanganPage() {
                         </p>
                       </div>
 
-                      {tersedia ? (
                         <Link
                           href={`/lapangan/${lapangan.id}`}
                           className="rounded-full bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-lime-400 hover:text-black"
                         >
                           Pesan
                         </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled
-                          className="cursor-not-allowed rounded-full bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/40"
-                        >
-                          Tidak Tersedia
-                        </button>
-                      )}
-                    </div>
+                </div>
                   </div>
                 </article>
               );
