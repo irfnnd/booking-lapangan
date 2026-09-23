@@ -3,9 +3,9 @@ export type LapanganStatus = "Tersedia" | "Tidak Tersedia" | "Aktif" | "Nonaktif
 export const normalizeLapanganStatus = (
   status?: string | null,
 ): "Tersedia" | "Tidak Tersedia" => {
-  const value = (status ?? "").trim();
+  const value = (status ?? "").trim().toLowerCase();
 
-  if (value === "Aktif" || value === "Tersedia") {
+  if (value === "aktif" || value === "tersedia" || value === "available" || value === "active") {
     return "Tersedia";
   }
 

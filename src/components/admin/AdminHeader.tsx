@@ -40,7 +40,7 @@ export default function AdminHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const displayTitle = title || pageTitles[pathname] || "Admin Dashboard";
+  // const displayTitle = title || pageTitles[pathname] || "Admin Dashboard";
 
   const handleLogout = async () => {
     await signOut({
@@ -66,7 +66,7 @@ export default function AdminHeader({
 
         <div>
           <h1 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl tracking-tight">
-            {displayTitle}
+            {/* {displayTitle} */}
           </h1>
         </div>
       </div>

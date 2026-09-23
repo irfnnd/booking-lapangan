@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import { usePathname } from "next/navigation";
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import { useSession } from "@/lib/auth-client";
@@ -12,25 +12,10 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const router = useRouter();
-  const { data: session, isPending } = useSession();
+  const pathname = usePathname();
 
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.replace("/login");
-    }
-  }, [isPending, session, router]);
-
-  if (isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-500 dark:bg-gray-950 dark:text-gray-400">
-        Memuat panel admin...
-      </div>
-    );
-  }
-
-  if (!session) {
-    return null;
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
   }
 
   return (
