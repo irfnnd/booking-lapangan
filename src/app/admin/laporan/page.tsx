@@ -5,18 +5,20 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReportSummaryCards from "@/components/admin/ReportSummaryCards";
 import RevenueChart from "@/components/admin/RevenueChart";
 import ReportTable, { ReportTableRef } from "@/components/admin/ReportTable";
-import { Calendar, Download, Printer, Filter, RefreshCw } from "lucide-react";
+import { Printer, RefreshCw } from "lucide-react";
 
 export default function AdminLaporanPage() {
   const [period, setPeriod] = useState<"today" | "week" | "month" | "year">("month");
+  const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const reportTableRef = useRef<ReportTableRef>(null);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    setRefreshKey((k) => k + 1);
     setTimeout(() => {
       setIsRefreshing(false);
-    }, 600);
+    }, 800);
   };
 
   const handlePrintPage = () => {
@@ -28,7 +30,7 @@ export default function AdminLaporanPage() {
       {/* PAGE HEADER & CONTROLS */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <AdminPageHeader
-          title="Laporan & Keuangan Admin"
+          title="Laporan & Keuangan"
           description="Pantau analisis pendapatan, tren statistik pemesanan, dan rincian transaksi laporan."
         />
 
@@ -82,22 +84,15 @@ export default function AdminLaporanPage() {
             <Printer className="h-4 w-4" />
             <span>Cetak PDF</span>
           </button>
-          <button
-            onClick={handleRefresh}
-            title="Refresh Data"
-            className="rounded-xl border border-gray-200 bg-white p-2 text-gray-600 shadow-xs hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 transition"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin text-lime-500" : ""}`} />
-          </button>
 
         </div>
       </div>
 
       {/* FINANCIAL SUMMARY METRIC CARDS */}
-      <ReportSummaryCards period={period} />
+      <ReportSummaryCards period={period} refreshKey={refreshKey} />
 
       {/* DETAILED TRANSACTION REPORT TABLE */}
-      <ReportTable ref={reportTableRef} period={period} />
+      <ReportTable ref={reportTableRef} period={period} refreshKey={refreshKey} />
     </div>
   );
 }

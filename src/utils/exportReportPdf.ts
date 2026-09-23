@@ -51,12 +51,12 @@ export function exportReportToPdf({
   // WARNA
   // ==============================
 
-  const black = [15, 23, 42];
-  const darkGray = [51, 65, 85];
-  const gray = [100, 116, 139];
-  const lightGray = [226, 232, 240];
-  const veryLightGray = [248, 250, 252];
-  const white = [255, 255, 255];
+  const black: [number, number, number] = [15, 23, 42];
+  const darkGray: [number, number, number] = [51, 65, 85];
+  const gray: [number, number, number] = [100, 116, 139];
+  const lightGray: [number, number, number] = [226, 232, 240];
+  const veryLightGray: [number, number, number] = [248, 250, 252];
+  const white: [number, number, number] = [255, 255, 255];
 
   // ==============================
   // HEADER / KOP LAPORAN
@@ -323,7 +323,6 @@ const tableData = items.map(
     `${item.customerName}`,
     item.lapanganName,
     `${item.date}\n${item.timeSlot}`,
-    item.paymentMethod,
     `Rp ${item.amount.toLocaleString("id-ID")}`,
   ]
 );
@@ -338,7 +337,6 @@ autoTable(doc, {
       "Pelanggan",
       "Lapangan",
       "Tanggal / Sesi",
-      "Metode Pembayaran",
       "Total",
     ],
   ],
@@ -369,34 +367,30 @@ autoTable(doc, {
   columnStyles: {
     0: {
       halign: "center",
-      cellWidth: 9,
+      cellWidth: 10,
     },
 
     1: {
       fontStyle: "bold",
-      cellWidth: 27,
+      cellWidth: 32,
     },
 
     2: {
-      cellWidth: 25,
+      cellWidth: 30,
     },
 
     3: {
-      cellWidth: 39,
+      cellWidth: 44,
     },
 
     4: {
-      cellWidth: 27,
+      cellWidth: 32,
       halign: "center",
     },
 
     5: {
-      cellWidth: 28,
-      halign: "center",
-    },
-
-    6: {
-      cellWidth: 25,
+      cellWidth: 32,
+      halign: "right",
     },
   },
 
