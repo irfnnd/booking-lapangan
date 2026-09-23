@@ -82,7 +82,7 @@ export default function AdminLaporanPage() {
             className="inline-flex items-center gap-1.5 rounded-xl bg-lime-400 px-4 py-2 text-xs font-bold text-gray-950 shadow-xs hover:bg-lime-300 transition"
           >
             <Printer className="h-4 w-4" />
-            <span>Cetak PDF</span>
+            <span>PDF</span>
           </button>
 
         </div>
