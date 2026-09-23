@@ -1,116 +1,127 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { signOut, useSession } from "@/lib/auth-client";
+import { isLapanganAvailable } from "@/lib/lapangan";
 
 type Lapangan = {
-  id: number;
-  nama: string;
-  olahraga: string;
-  lokasi: string;
-  harga: number;
-  rating: number;
-  image: string;
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  location: string;
+  price: number;
+  picture_url: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-const daftarLapangan: Lapangan[] = [
-  {
-    id: 1,
-    nama: "Arena Futsal Premium",
-    olahraga: "Futsal",
-    lokasi: "Padang, Sumatera Barat",
-    harga: 120000,
-    rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1553778263-73a83bab9b0c?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 2,
-    nama: "Victory Badminton",
-    olahraga: "Badminton",
-    lokasi: "Padang, Sumatera Barat",
-    harga: 75000,
-    rating: 4.7,
-    image:
-      "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 3,
-    nama: "Sport Center Basketball",
-    olahraga: "Basket",
-    lokasi: "Kota Padang",
-    harga: 150000,
-    rating: 4.9,
-    image:
-      "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 4,
-    nama: "Champion Mini Soccer",
-    olahraga: "Mini Soccer",
-    lokasi: "Kuranji, Padang",
-    harga: 200000,
-    rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 5,
-    nama: "Smash Badminton Hall",
-    olahraga: "Badminton",
-    lokasi: "Lubuk Begalung",
-    harga: 85000,
-    rating: 4.6,
-    image:
-      "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: 6,
-    nama: "Galaxy Futsal",
-    olahraga: "Futsal",
-    lokasi: "Nanggalo, Padang",
-    harga: 100000,
-    rating: 4.7,
-    image:
-      "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=900&q=80",
-  },
-];
-
-const kategori = [
-  "Semua",
-  "Futsal",
-  "Badminton",
-  "Basket",
-  "Mini Soccer",
-];
+const fallbackImage =
+  "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=900&q=80";
 
 export default function LapanganPage() {
   const { data: session, isPending } = useSession();
-  console.log("SESSION USER:", session?.user);
 
   const [search, setSearch] = useState("");
   const [kategoriAktif, setKategoriAktif] = useState("Semua");
   const [menuAkunTerbuka, setMenuAkunTerbuka] = useState(false);
 
+  const [daftarLapangan, setDaftarLapangan] = useState<Lapangan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // =========================
+  // AMBIL DATA DARI DATABASE
+  // =========================
+  useEffect(() => {
+    const fetchLapangan = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const response = await fetch("/api/lapangan", {
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error || "Gagal memuat data lapangan"
+          );
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error("Format data lapangan tidak valid.");
+        }
+
+        setDaftarLapangan(data);
+      } catch (err) {
+        console.error("Error mengambil data lapangan:", err);
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Gagal memuat data lapangan dari server."
+        );
+
+        setDaftarLapangan([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLapangan();
+  }, []);
+
+  // =========================
+  // KATEGORI DINAMIS
+  // =========================
+  const kategori = useMemo(() => {
+    const uniqueCategories = Array.from(
+      new Set(
+        daftarLapangan
+          .map((lapangan) => lapangan.category)
+          .filter(Boolean)
+      )
+    );
+
+    return ["Semua", ...uniqueCategories];
+  }, [daftarLapangan]);
+
+  // =========================
+  // FILTER + SEARCH
+  // =========================
   const lapanganTerfilter = useMemo(() => {
     return daftarLapangan.filter((lapangan) => {
       const cocokKategori =
         kategoriAktif === "Semua" ||
-        lapangan.olahraga === kategoriAktif;
+        lapangan.category === kategoriAktif;
 
-      const kataKunci = search.toLowerCase();
+      const kataKunci = search.toLowerCase().trim();
 
       const cocokSearch =
-        lapangan.nama.toLowerCase().includes(kataKunci) ||
-        lapangan.olahraga.toLowerCase().includes(kataKunci) ||
-        lapangan.lokasi.toLowerCase().includes(kataKunci);
+        lapangan.name.toLowerCase().includes(kataKunci) ||
+        lapangan.category.toLowerCase().includes(kataKunci) ||
+        lapangan.location.toLowerCase().includes(kataKunci);
 
       return cocokKategori && cocokSearch;
     });
-  }, [search, kategoriAktif]);
+  }, [daftarLapangan, search, kategoriAktif]);
 
+  // =========================
+  // JUMLAH LAPANGAN AKTIF
+  // =========================
+  const lapanganTersediaCount = daftarLapangan.filter((lapangan) =>
+    isLapanganAvailable(lapangan.status)
+  ).length;
+
+  // =========================
+  // FORMAT RUPIAH
+  // =========================
   const formatRupiah = (nominal: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -119,6 +130,9 @@ export default function LapanganPage() {
     }).format(nominal);
   };
 
+  // =========================
+  // LOGOUT
+  // =========================
   const handleLogout = async () => {
     await signOut({
       fetchOptions: {
@@ -131,7 +145,9 @@ export default function LapanganPage() {
 
   return (
     <main className="min-h-screen bg-[#07110d] text-white">
-      {/* NAVBAR */}
+      {/* =========================
+          NAVBAR
+      ========================= */}
       <nav className="border-b border-white/10 bg-[#07110d]/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           {/* LOGO */}
@@ -139,7 +155,8 @@ export default function LapanganPage() {
             href="/"
             className="text-xl font-bold tracking-tight"
           >
-            Booking<span className="text-lime-400">Lapangan</span>
+            Booking
+            <span className="text-lime-400">Lapangan</span>
           </Link>
 
           {/* MENU */}
@@ -166,14 +183,16 @@ export default function LapanganPage() {
             </Link>
           </div>
 
-          {/* AUTH BUTTON */}
+          {/* AUTH */}
           {!isPending &&
             (session ? (
               <div className="relative">
                 {/* FOTO PROFIL */}
                 <button
                   type="button"
-                  onClick={() => setMenuAkunTerbuka(!menuAkunTerbuka)}
+                  onClick={() =>
+                    setMenuAkunTerbuka(!menuAkunTerbuka)
+                  }
                   className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-lime-400/50 bg-white/[0.06] transition hover:border-lime-400"
                   aria-label="Menu akun"
                 >
@@ -187,7 +206,9 @@ export default function LapanganPage() {
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-lime-400 text-sm font-bold text-black">
-                      {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+                      {session?.user?.name
+                        ?.charAt(0)
+                        .toUpperCase() || "U"}
                     </div>
                   )}
                 </button>
@@ -195,7 +216,7 @@ export default function LapanganPage() {
                 {/* MENU AKUN */}
                 {menuAkunTerbuka && (
                   <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#101a15] shadow-2xl">
-                    {/* PROFIL AKUN */}
+                    {/* PROFIL */}
                     <div className="border-b border-white/10 px-4 py-3">
                       <p className="text-xs text-white/40">
                         Profil Akun
@@ -238,10 +259,12 @@ export default function LapanganPage() {
                 </Link>
               </div>
             ))}
-          </div>
+        </div>
       </nav>
 
-      {/* HEADER */}
+      {/* =========================
+          HEADER
+      ========================= */}
       <section className="mx-auto max-w-7xl px-6 pb-8 pt-14">
         <div className="max-w-3xl">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-lime-400">
@@ -251,12 +274,15 @@ export default function LapanganPage() {
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
             Temukan lapangan
             <br />
-            <span className="text-lime-400">untuk permainanmu.</span>
+            <span className="text-lime-400">
+              untuk permainanmu.
+            </span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-7 text-white/60">
-            Pilih lapangan olahraga yang sesuai dengan kebutuhanmu.
-            Cari berdasarkan nama, jenis olahraga, atau lokasi.
+            Pilih lapangan olahraga yang sesuai dengan
+            kebutuhanmu. Cari berdasarkan nama, jenis olahraga,
+            atau lokasi.
           </p>
         </div>
 
@@ -285,6 +311,7 @@ export default function LapanganPage() {
             return (
               <button
                 key={item}
+                type="button"
                 onClick={() => setKategoriAktif(item)}
                 className={`rounded-full px-5 py-2.5 text-sm font-medium transition ${
                   aktif
@@ -299,7 +326,9 @@ export default function LapanganPage() {
         </div>
       </section>
 
-      {/* DAFTAR LAPANGAN */}
+      {/* =========================
+          DAFTAR LAPANGAN
+      ========================= */}
       <section className="mx-auto max-w-7xl px-6 pb-20">
         <div className="mb-7 flex items-end justify-between">
           <div>
@@ -308,82 +337,125 @@ export default function LapanganPage() {
             </h2>
 
             <p className="mt-2 text-sm text-white/45">
-              {lapanganTerfilter.length} lapangan ditemukan
+              {lapanganTersediaCount} Tersedia ·{" "}
+              {lapanganTerfilter.length} ditemukan
             </p>
           </div>
         </div>
 
-        {lapanganTerfilter.length > 0 ? (
+        {/* ERROR */}
+        {error && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {error}
+          </div>
+        )}
+
+        {/* LOADING */}
+        {isLoading ? (
+          <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-16 text-center text-white/60">
+            Memuat data lapangan dari database...
+          </div>
+        ) : lapanganTerfilter.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {lapanganTerfilter.map((lapangan) => (
-              <article
-                key={lapangan.id}
-                className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-lime-400/30 hover:bg-white/[0.06]"
-              >
-                {/* IMAGE */}
-                <div className="relative h-56 overflow-hidden">
-                  <img
-                    src={lapangan.image}
-                    alt={lapangan.nama}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
+            {lapanganTerfilter.map((lapangan) => {
+              const tersedia = isLapanganAvailable(lapangan.status);
+              const statusLabel = tersedia ? "Tersedia" : "Tidak Tersedia";
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+              return (
+                <article
+                  key={lapangan.id}
+                  className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-lime-400/30 hover:bg-white/[0.06]"
+                >
+                  {/* GAMBAR */}
+                  <div className="relative h-56 overflow-hidden">
+                    <img
+                      src={
+                        lapangan.picture_url || fallbackImage
+                      }
+                      alt={lapangan.name}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
 
-                  {/* SPORT */}
-                  <div className="absolute left-4 top-4">
-                    <span className="rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-lime-300 backdrop-blur">
-                      {lapangan.olahraga}
-                    </span>
-                  </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-                  {/* RATING */}
-                  <div className="absolute bottom-4 right-4">
-                    <span className="rounded-full bg-black/70 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
-                      ⭐ {lapangan.rating}
-                    </span>
-                  </div>
-                </div>
-
-                {/* CONTENT */}
-                <div className="p-5">
-                  <h3 className="text-xl font-bold">
-                    {lapangan.nama}
-                  </h3>
-
-                  <p className="mt-2 flex items-center gap-2 text-sm text-white/50">
-                    <span>📍</span>
-                    {lapangan.lokasi}
-                  </p>
-
-                  <div className="mt-5 flex items-end justify-between gap-4">
-                    <div>
-                      <p className="text-xs text-white/40">
-                        Mulai dari
-                      </p>
-
-                      <p className="mt-1 text-lg font-bold text-lime-400">
-                        {formatRupiah(lapangan.harga)}
-                      </p>
-
-                      <p className="text-xs text-white/40">
-                        / jam
-                      </p>
+                    {/* KATEGORI */}
+                    <div className="absolute left-4 top-4">
+                      <span className="rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-lime-300 backdrop-blur">
+                        {lapangan.category}
+                      </span>
                     </div>
 
-                    <Link
-                      href={`/lapangan/${lapangan.id}`}
-                      className="rounded-full bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-lime-400 hover:text-black"
-                    >
-                      Lihat Detail
-                    </Link>
+                    {/* STATUS */}
+                    <div className="absolute right-4 top-4">
+                      <span
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur ${
+                          tersedia
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-amber-500/20 text-amber-300"
+                        }`}
+                      >
+                        {statusLabel}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* INFORMASI */}
+                  <div className="p-5">
+                    <h3 className="text-xl font-bold">
+                      {lapangan.name}
+                    </h3>
+
+                    <p className="mt-2 flex items-center gap-2 text-sm text-white/50">
+                      <span>📍</span>
+                      {lapangan.location}
+                    </p>
+
+                    {/* DESKRIPSI */}
+                    {lapangan.description && (
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-white/45">
+                        {lapangan.description}
+                      </p>
+                    )}
+
+                    <div className="mt-5 flex items-end justify-between gap-4">
+                      <div>
+                        <p className="text-xs text-white/40">
+                          Mulai dari
+                        </p>
+
+                        <p className="mt-1 text-lg font-bold text-lime-400">
+                          {formatRupiah(lapangan.price)}
+                        </p>
+
+                        <p className="text-xs text-white/40">
+                          / jam
+                        </p>
+                      </div>
+                      {tersedia ? (
+                        <Link
+                          href={`/lapangan/${lapangan.id}`}
+                          className="rounded-full bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-lime-400 hover:text-black"
+                        >
+                          Pesan
+                        </Link>
+                      ):(
+                        <button
+                        type="button"
+                        disabled
+                        className="cursor-not-allowed rounded-full bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/40"
+                        >
+                          Tidak Tersedia
+                        </button>
+                      )
+                      }
                 </div>
-              </article>
-            ))}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
-          /* TIDAK ADA HASIL */
+          /* DATA KOSONG */
           <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-16 text-center">
             <div className="text-4xl">🔍</div>
 
@@ -397,6 +469,7 @@ export default function LapanganPage() {
             </p>
 
             <button
+              type="button"
               onClick={() => {
                 setSearch("");
                 setKategoriAktif("Semua");
@@ -409,16 +482,14 @@ export default function LapanganPage() {
         )}
       </section>
 
-      {/* FOOTER */}
+      {/* =========================
+          FOOTER
+      ========================= */}
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-white/40 md:flex-row md:items-center md:justify-between">
-          <p>
-            © 2026 BookingLapangan. Semua hak dilindungi.
-          </p>
+          <p>© 2026 BookingLapangan. Semua hak dilindungi.</p>
 
-          <p>
-            Booking lapangan olahraga dengan mudah.
-          </p>
+          <p>Booking lapangan olahraga dengan mudah.</p>
         </div>
       </footer>
     </main>

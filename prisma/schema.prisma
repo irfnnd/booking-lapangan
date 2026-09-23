@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,11 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-}
-
-enum UserRole {
-  USER
-  ADMIN
 }
 
 model User {
@@ -26,15 +16,14 @@ model User {
   role          UserRole  @default(USER)
   createdAt     DateTime
   updatedAt     DateTime
-  sessions      Session[]
   accounts      Account[]
+  sessions      Session[]
 
   @@map("user")
 }
 
 model Session {
   id        String   @id
-  user      User     @relation(fields: [userId], references: [id])
   userId    String
   token     String   @unique
   expiresAt DateTime
@@ -42,87 +31,81 @@ model Session {
   userAgent String?
   createdAt DateTime
   updatedAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
 
-  @@index([userId], map: "session_userId_idx")
+  @@index([userId])
   @@map("session")
 }
 
 model Account {
   id                    String    @id
-  user                  User      @relation(fields: [userId], references: [id])
   userId                String
   accountId             String
   providerId            String
-  accessToken           String?   @db.Text
-  refreshToken          String?   @db.Text
+  accessToken           String?
+  refreshToken          String?
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
   scope                 String?
-  idToken               String?   @db.Text
+  idToken               String?
   password              String?
   createdAt             DateTime
   updatedAt             DateTime
+  user                  User      @relation(fields: [userId], references: [id])
 
-  @@index([userId], map: "account_userId_idx")
+  @@index([userId])
   @@map("account")
 }
 
 model Verification {
   id         String   @id
   identifier String
-  value      String   @db.Text
+  value      String
   expiresAt  DateTime
   createdAt  DateTime
   updatedAt  DateTime
 
-  @@index([identifier], map: "verification_identifier_idx")
+  @@index([identifier])
   @@map("verification")
 }
 
-model Customer {
-  id          String  @id @default(uuid())
-  userId      String  @unique
-  email       String  @unique
-  name        String?
-  username    String  @unique
-  password    String
-  picture_url String?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
-}
-
-model Admin {
-  id          String  @id @default(uuid())
-  userId      String  @unique
-  email       String  @unique
-  name        String?
-  username    String  @unique
-  password    String
-  picture_url String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Lapangan {
-  id          String  @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   description String?
   location    String
   price       Float
   picture_url String?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  category    String    @default("Futsal")
+  status      String    @default("Aktif")
+  bookings    Booking[]
 }
 
-enum StatusBooking {
-  PENDING
-  CONFIRMED
-  CANCELLED
+model Customer {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  email       String    @unique
+  name        String?
+  username    String    @unique
+  password    String
+  picture_url String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+}
+
+model Admin {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  email       String   @unique
+  name        String?
+  username    String   @unique
+  password    String
+  picture_url String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Booking {
@@ -132,14 +115,11 @@ model Booking {
   startTime  DateTime
   endTime    DateTime
   status     StatusBooking @default(PENDING)
-
-  customer Customer @relation(fields: [customerId], references: [id])
-  lapangan Lapangan @relation(fields: [lapanganId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  payments Payment[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  customer   Customer      @relation(fields: [customerId], references: [id])
+  lapangan   Lapangan      @relation(fields: [lapanganId], references: [id])
+  payments   Payment[]
 }
 
 model Payment {
@@ -156,9 +136,18 @@ model Payment {
   cardType      String?
   bank          String?
   approvalCode  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  booking       Booking  @relation(fields: [bookingId], references: [id])
+}
 
-  booking Booking @relation(fields: [bookingId], references: [id])
+enum UserRole {
+  USER
+  ADMIN
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum StatusBooking {
+  PENDING
+  CONFIRMED
+  CANCELLED
 }

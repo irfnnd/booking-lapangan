@@ -11,7 +11,7 @@ export interface LapanganFormData {
   price: number;
   picture_url: string;
   description: string;
-  status: "Aktif" | "Pemeliharaan" | "Nonaktif";
+  status: "Tersedia" | "Tidak Tersedia";
 }
 
 interface LapanganFormModalProps {
@@ -34,7 +34,7 @@ export default function LapanganFormModal({
     price: 120000,
     picture_url: "",
     description: "",
-    status: "Aktif",
+    status: "Tersedia",
   });
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function LapanganFormModal({
         price: 120000,
         picture_url: "",
         description: "",
-        status: "Aktif",
+        status: "Tersedia",
       });
     }
   }, [initialData, isOpen]);
@@ -127,14 +127,13 @@ export default function LapanganFormModal({
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as "Aktif" | "Pemeliharaan" | "Nonaktif",
+                    status: e.target.value as "Tersedia" | "Tidak Tersedia",
                   })
                 }
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 outline-none focus:border-lime-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               >
-                <option value="Aktif">Aktif (Tersedia)</option>
-                <option value="Pemeliharaan">Pemeliharaan (Maintenance)</option>
-                <option value="Nonaktif">Nonaktif</option>
+                <option value="Tersedia">Tersedia</option>
+                <option value="Tidak Tersedia">Tidak Tersedia</option>
               </select>
             </div>
           </div>
