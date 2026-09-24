@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { normalizeLapanganStatus } from "@/lib/lapangan";
+import CustomerNavbar from "@/components/CustomerNavbar";
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80";
@@ -172,32 +173,7 @@ export default function LapanganDetailPage({
 
   return (
     <main className="min-h-screen bg-[#07110d] text-white">
-      <nav className="border-b border-white/10 bg-[#07110d]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link href="/" className="text-xl font-bold tracking-tight">
-            Booking<span className="text-lime-400">Lapangan</span>
-          </Link>
-
-          <div className="hidden items-center gap-8 md:flex">
-            <Link href="/" className="text-sm text-white/70 transition hover:text-white">
-              Home
-            </Link>
-            <Link href="/lapangan" className="text-sm text-white/70 transition hover:text-white">
-              Lapangan
-            </Link>
-            <Link href="/#tentang" className="text-sm text-white/70 transition hover:text-white">
-              Tentang
-            </Link>
-          </div>
-
-          <Link
-            href="/lapangan"
-            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/[0.08]"
-          >
-            Kembali
-          </Link>
-        </div>
-      </nav>
+      <CustomerNavbar />
 
       <section className="mx-auto max-w-6xl px-6 py-10 md:py-14">
         <div className="mb-8 flex flex-wrap items-center gap-3 text-sm text-white/60">

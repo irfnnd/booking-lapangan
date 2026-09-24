@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { signOut, useSession } from "@/lib/auth-client";
 import { isLapanganAvailable } from "@/lib/lapangan";
+import CustomerNavbar from "@/components/CustomerNavbar";
 
 type Lapangan = {
   id: string;
@@ -148,119 +149,7 @@ export default function LapanganPage() {
       {/* =========================
           NAVBAR
       ========================= */}
-      <nav className="border-b border-white/10 bg-[#07110d]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          {/* LOGO */}
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-tight"
-          >
-            Booking
-            <span className="text-lime-400">Lapangan</span>
-          </Link>
-
-          {/* MENU */}
-          <div className="hidden items-center gap-8 md:flex">
-            <Link
-              href="/"
-              className="text-sm text-white/70 transition hover:text-white"
-            >
-              Home
-            </Link>
-
-            <Link
-              href="/lapangan"
-              className="text-sm font-semibold text-lime-400"
-            >
-              Lapangan
-            </Link>
-
-            <Link
-              href="/#tentang"
-              className="text-sm text-white/70 transition hover:text-white"
-            >
-              Tentang
-            </Link>
-          </div>
-
-          {/* AUTH */}
-          {!isPending &&
-            (session ? (
-              <div className="relative">
-                {/* FOTO PROFIL */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setMenuAkunTerbuka(!menuAkunTerbuka)
-                  }
-                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-lime-400/50 bg-white/[0.06] transition hover:border-lime-400"
-                  aria-label="Menu akun"
-                >
-                  {session?.user?.image ? (
-                    <Image
-                      src={session.user.image}
-                      alt="Foto profil"
-                      width={40}
-                      height={40}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-lime-400 text-sm font-bold text-black">
-                      {session?.user?.name
-                        ?.charAt(0)
-                        .toUpperCase() || "U"}
-                    </div>
-                  )}
-                </button>
-
-                {/* MENU AKUN */}
-                {menuAkunTerbuka && (
-                  <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#101a15] shadow-2xl">
-                    {/* PROFIL */}
-                    <div className="border-b border-white/10 px-4 py-3">
-                      <p className="text-xs text-white/40">
-                        Profil Akun
-                      </p>
-
-                      <p className="mt-1 truncate text-sm font-semibold text-white">
-                        {session.user?.name || "Pengguna"}
-                      </p>
-
-                      <p className="mt-1 truncate text-xs text-white/40">
-                        {session.user?.email || ""}
-                      </p>
-                    </div>
-
-                    {/* KELUAR */}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="w-full border-t border-white/10 px-4 py-3 text-left text-sm font-semibold text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
-                    >
-                      Keluar
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/login"
-                  className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition hover:border-lime-400 hover:text-lime-400"
-                >
-                  Masuk
-                </Link>
-
-                <Link
-                  href="/register"
-                  className="rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-300"
-                >
-                  Daftar
-                </Link>
-              </div>
-            ))}
-        </div>
-      </nav>
+      <CustomerNavbar />
 
       {/* =========================
           HEADER
