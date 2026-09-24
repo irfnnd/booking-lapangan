@@ -376,32 +376,6 @@ export default function AdminUsersPage() {
           STATISTICS
       ========================= */}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Pengguna"
-          value={totalUsers}
-          subtitle="Pengguna terdaftar"
-          icon={Users}
-          iconClass="bg-lime-100 text-lime-700 dark:bg-lime-400/10 dark:text-lime-400"
-        />
-
-        <StatCard
-          title="Total Booking"
-          value="-"
-          subtitle="Data booking dikelola di halaman booking"
-          icon={CalendarDays}
-          iconClass="bg-blue-100 text-blue-700 dark:bg-blue-400/10 dark:text-blue-400"
-        />
-
-        <StatCard
-          title="Total Transaksi"
-          value="-"
-          subtitle="Data transaksi dikelola di halaman transaksi"
-          icon={Wallet}
-          iconClass="bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
-        />
-      </div>
-
       {/* =========================
           USER TABLE
       ========================= */}
