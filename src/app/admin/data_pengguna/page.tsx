@@ -16,6 +16,7 @@ import {
   Loader2,
   Eye,
 } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 type UserRole = "USER" | "ADMIN";
 
@@ -380,8 +381,12 @@ export default function AdminUsersPage() {
           USER TABLE
       ========================= */}
 
-      <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         {/* HEADER */}
+              <AdminPageHeader
+                title="Kelola Data Pengguna"
+                description="Tambah, edit, hapus data pengguna yang terdaftar di aplikasi."
+              />
+      <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
 
         <div className="border-b border-gray-100 p-5 dark:border-gray-800 sm:p-6">
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
