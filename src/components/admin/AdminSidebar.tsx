@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -55,10 +55,36 @@ const navItems = [
 export default function AdminSidebar({
   isOpen = false,
   onClose,
-  pendingBookingCount = 12,
+  pendingBookingCount: propCount,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [pendingBookingCount, setPendingBookingCount] = useState<number>(propCount ?? 0);
+
+  useEffect(() => {
+    if (propCount !== undefined) {
+      setPendingBookingCount(propCount);
+      return;
+    }
+
+    let cancelled = false;
+    fetch("/api/admin")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data) {
+          const count =
+            data.stats?.pendingBookings ??
+            data.bookings?.filter((b: any) => b.status === "PENDING").length ??
+            0;
+          setPendingBookingCount(count);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [propCount, pathname]);
 
   const handleLogout = async () => {
     await signOut({

@@ -41,7 +41,13 @@ export async function GET() {
       },
       payments: booking.payments.map((payment) => ({ status: payment.status, amount: payment.amount })),
     })),
-    stats: { users: users.length, fields: fields.length, bookings: bookings.length, revenue: revenue._sum.amount ?? 0 },
+    stats: {
+      users: users.length,
+      fields: fields.length,
+      bookings: bookings.length,
+      pendingBookings: bookings.filter((b) => b.status === "PENDING").length,
+      revenue: revenue._sum.amount ?? 0,
+    },
   });
 }
 
