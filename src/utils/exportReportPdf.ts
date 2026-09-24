@@ -390,7 +390,7 @@ autoTable(doc, {
 
     5: {
       cellWidth: 32,
-      halign: "right",
+      halign: "center",
     },
   },
 
@@ -512,7 +512,7 @@ autoTable(doc, {
   doc.setFont("helvetica", "bold");
 
   doc.text(
-    "( __________________ )",
+    "",
     signature1X,
     approvalY + 50,
     {
@@ -521,7 +521,7 @@ autoTable(doc, {
   );
 
   doc.text(
-    "( __________________ )",
+    "",
     signature2X,
     approvalY + 50,
     {
