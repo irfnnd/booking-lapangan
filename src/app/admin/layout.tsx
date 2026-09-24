@@ -37,7 +37,7 @@ export default function AdminLayout({
 
     // Sudah login tetapi bukan admin
     if (session.user.role !== "ADMIN") {
-      router.replace("/login");
+      router.replace("/admin/login");
     }
   }, [isPending, pathname, router, session]);
 
