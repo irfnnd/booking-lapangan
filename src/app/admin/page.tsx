@@ -1,9 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Users, Dumbbell, CalendarClock, Wallet, ArrowRight } from "lucide-react";
 import DashboardCard from "@/components/admin/DashboardCard";
 import RecentBookingsTable from "@/components/admin/RecentBookingsTable";
 import RevenueChart from "@/components/admin/RevenueChart";
 import { prisma } from "@/app/prisma";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Pantau statistik dan aktivitas terbaru di panel admin BookingLapangan.",
+};
 
 export default async function AdminDashboard() {
   const now = new Date();

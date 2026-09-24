@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import RecentBookingsTable from "@/components/admin/RecentBookingsTable";
+
+export const metadata: Metadata = {
+  title: "Kelola Booking",
+  description: "Lihat dan kelola semua pemesanan lapangan.",
+};
 
 export default function AdminBookingPage() {
   return (

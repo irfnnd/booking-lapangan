@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LapanganTable from "@/components/admin/LapanganTable";
+
+export const metadata: Metadata = {
+  title: "Kelola Lapangan",
+  description: "Tambah, ubah, dan hapus data lapangan olahraga.",
+};
 
 export default function AdminLapanganPage() {
   return (

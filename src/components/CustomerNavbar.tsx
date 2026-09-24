@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Receipt, ShieldCheck } from "lucide-react";
+import { Menu, X, Receipt, ShieldCheck } from "lucide-react";
 import { signOut, useSession } from "@/lib/auth-client";
 
 interface CustomerNavbarProps {
@@ -15,6 +15,7 @@ export default function CustomerNavbar({ hasPendingBooking }: CustomerNavbarProp
   const pathname = usePathname();
   const { data: session, isPending } = useSession();
   const [menuAkunTerbuka, setMenuAkunTerbuka] = useState(false);
+  const [mobileMenuTerbuka, setMobileMenuTerbuka] = useState(false);
   const [hasPending, setHasPending] = useState(hasPendingBooking ?? false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +67,11 @@ export default function CustomerNavbar({ hasPendingBooking }: CustomerNavbarProp
     };
   }, [menuAkunTerbuka]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuTerbuka(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     await signOut({
       fetchOptions: {
@@ -88,14 +94,12 @@ export default function CustomerNavbar({ hasPendingBooking }: CustomerNavbarProp
           Booking<span className="text-lime-400">Lapangan</span>
         </Link>
 
-        {/* MENU */}
+        {/* DESKTOP MENU */}
         <div className="hidden items-center gap-8 md:flex">
           <Link
             href="/"
             className={`text-sm transition ${
-              isHomeActive
-                ? "font-semibold text-lime-400"
-                : "text-white/70 hover:text-white"
+              isHomeActive ? "font-semibold text-lime-400" : "text-white/70 hover:text-white"
             }`}
           >
             Home
@@ -104,9 +108,7 @@ export default function CustomerNavbar({ hasPendingBooking }: CustomerNavbarProp
           <Link
             href="/lapangan"
             className={`text-sm transition ${
-              isLapanganActive
-                ? "font-semibold text-lime-400"
-                : "text-white/70 hover:text-white"
+              isLapanganActive ? "font-semibold text-lime-400" : "text-white/70 hover:text-white"
             }`}
           >
             Lapangan
@@ -115,9 +117,7 @@ export default function CustomerNavbar({ hasPendingBooking }: CustomerNavbarProp
           <Link
             href="/pemesanan"
             className={`text-sm flex items-center gap-1.5 transition ${
-              isPemesananActive
-                ? "font-semibold text-lime-400"
-                : "text-white/70 hover:text-white"
+              isPemesananActive ? "font-semibold text-lime-400" : "text-white/70 hover:text-white"
             }`}
           >
             <span>Riwayat Pesanan</span>
@@ -134,90 +134,172 @@ export default function CustomerNavbar({ hasPendingBooking }: CustomerNavbarProp
           </Link>
         </div>
 
-        {/* AUTH / PROFILE */}
-        {!isPending &&
-          (session ? (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setMenuAkunTerbuka(!menuAkunTerbuka)}
-                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-lime-400/50 bg-white/[0.06] transition hover:border-lime-400"
-                aria-label="Menu akun"
-              >
-                {session?.user?.image ? (
-                  <Image
-                    src={session.user.image}
-                    alt="Foto profil"
-                    width={40}
-                    height={40}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-lime-400 text-sm font-bold text-black">
-                    {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+        {/* RIGHT SIDE: AUTH + HAMBURGER */}
+        <div className="flex items-center gap-3">
+          {/* AUTH / PROFILE */}
+          {!isPending &&
+            (session ? (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuAkunTerbuka(!menuAkunTerbuka)}
+                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-lime-400/50 bg-white/[0.06] transition hover:border-lime-400"
+                  aria-label="Menu akun"
+                >
+                  {session?.user?.image ? (
+                    <Image
+                      src={session.user.image}
+                      alt="Foto profil"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-lime-400 text-sm font-bold text-black">
+                      {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
+                </button>
+
+                {menuAkunTerbuka && (
+                  <div className="absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-2xl border border-white/10 bg-[#101a15] shadow-2xl">
+                    <div className="border-b border-white/10 px-4 py-3">
+                      <p className="text-xs text-white/40">Profil Akun</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-white">
+                        {session.user?.name || "Pengguna"}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-white/40">
+                        {session.user?.email || ""}
+                      </p>
+                    </div>
+
+                    <div className="py-1">
+                      <Link
+                        href="/pemesanan"
+                        onClick={() => setMenuAkunTerbuka(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-lime-400 hover:bg-white/[0.04] transition"
+                      >
+                        <Receipt className="h-4 w-4" />
+                        <span>Riwayat Pesanan</span>
+                      </Link>
+
+                      <Link
+                        href="/admin"
+                        onClick={() => setMenuAkunTerbuka(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-white/70 hover:bg-white/[0.04] hover:text-white transition"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-white/50" />
+                        <span>Panel Admin</span>
+                      </Link>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full border-t border-white/10 px-4 py-3 text-left text-xs font-semibold text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+                    >
+                      Keluar
+                    </button>
                   </div>
                 )}
-              </button>
+              </div>
+            ) : (
+              /* Login/Daftar buttons — desktop only, mobile handled below */
+              <div className="hidden items-center gap-3 md:flex">
+                <Link
+                  href="/login?redirect=/pemesanan"
+                  className="rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white transition hover:border-lime-400 hover:text-lime-400"
+                >
+                  Masuk
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-black transition hover:bg-lime-300"
+                >
+                  Daftar
+                </Link>
+              </div>
+            ))}
 
-              {menuAkunTerbuka && (
-                <div className="absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-2xl border border-white/10 bg-[#101a15] shadow-2xl">
-                  <div className="border-b border-white/10 px-4 py-3">
-                    <p className="text-xs text-white/40">Profil Akun</p>
-                    <p className="mt-1 truncate text-sm font-semibold text-white">
-                      {session.user?.name || "Pengguna"}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-white/40">
-                      {session.user?.email || ""}
-                    </p>
-                  </div>
-
-                  <div className="py-1">
-                    <Link
-                      href="/pemesanan"
-                      onClick={() => setMenuAkunTerbuka(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-lime-400 hover:bg-white/[0.04] transition"
-                    >
-                      <Receipt className="h-4 w-4" />
-                      <span>Riwayat Pesanan</span>
-                    </Link>
-
-                    <Link
-                      href="/admin"
-                      onClick={() => setMenuAkunTerbuka(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-white/70 hover:bg-white/[0.04] hover:text-white transition"
-                    >
-                      <ShieldCheck className="h-4 w-4 text-white/50" />
-                      <span>Panel Admin</span>
-                    </Link>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="w-full border-t border-white/10 px-4 py-3 text-left text-xs font-semibold text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
-                  >
-                    Keluar
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Link
-                href="/login?redirect=/pemesanan"
-                className="rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white transition hover:border-lime-400 hover:text-lime-400"
-              >
-                Masuk
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-black transition hover:bg-lime-300"
-              >
-                Daftar
-              </Link>
-            </div>
-          ))}
+          {/* HAMBURGER BUTTON — mobile only */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuTerbuka(!mobileMenuTerbuka)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-white transition hover:border-lime-400 hover:text-lime-400 md:hidden"
+            aria-label="Toggle menu navigasi"
+          >
+            {mobileMenuTerbuka ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* MOBILE MENU DROPDOWN */}
+      {mobileMenuTerbuka && (
+        <div className="border-t border-white/10 bg-[#07110d] px-6 py-5 md:hidden">
+          <div className="flex flex-col gap-5">
+            <Link
+              href="/"
+              onClick={() => setMobileMenuTerbuka(false)}
+              className={`text-sm transition ${
+                isHomeActive ? "font-semibold text-lime-400" : "text-white/70"
+              }`}
+            >
+              Home
+            </Link>
+
+            <Link
+              href="/lapangan"
+              onClick={() => setMobileMenuTerbuka(false)}
+              className={`text-sm transition ${
+                isLapanganActive ? "font-semibold text-lime-400" : "text-white/70"
+              }`}
+            >
+              Lapangan
+            </Link>
+
+            <Link
+              href="/pemesanan"
+              onClick={() => setMobileMenuTerbuka(false)}
+              className={`text-sm flex items-center gap-1.5 transition ${
+                isPemesananActive ? "font-semibold text-lime-400" : "text-white/70"
+              }`}
+            >
+              <span>Riwayat Pesanan</span>
+              {hasPending && (
+                <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+              )}
+            </Link>
+
+            <Link
+              href="/#tentang"
+              onClick={() => setMobileMenuTerbuka(false)}
+              className="text-sm text-white/70"
+            >
+              Tentang
+            </Link>
+
+            {/* Auth buttons on mobile (when not logged in) */}
+            {!isPending && !session && (
+              <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                <Link
+                  href="/login?redirect=/pemesanan"
+                  onClick={() => setMobileMenuTerbuka(false)}
+                  className="rounded-full border border-white/20 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:border-lime-400 hover:text-lime-400"
+                >
+                  Masuk
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileMenuTerbuka(false)}
+                  className="rounded-full bg-lime-400 px-5 py-2.5 text-center text-sm font-semibold text-black transition hover:bg-lime-300"
+                >
+                  Daftar
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
