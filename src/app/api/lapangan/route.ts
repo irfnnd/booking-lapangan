@@ -3,6 +3,36 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
+const defaultLapanganSeed = [
+  {
+    name: "Lapangan Futsal A",
+    category: "Futsal",
+    location: "Sintetis Indoor",
+    price: 150000,
+    description: "Lapangan futsal rumput sintetis standar internasional.",
+    picture_url: "",
+    status: "Tersedia",
+  },
+  {
+    name: "Lapangan Badminton 1",
+    category: "Badminton",
+    location: "Karpet Vinyil Hall 1",
+    price: 80000,
+    description: "Lapangan bulutangkis karpet standar PBSI.",
+    picture_url: "",
+    status: "Tersedia",
+  },
+  {
+    name: "Lapangan Basket Court",
+    category: "Basketball",
+    location: "Parquet Indoor",
+    price: 200000,
+    description: "Lapangan basket kayu lantai parquet.",
+    picture_url: "",
+    status: "Tersedia",
+  },
+];
+
 const ensureAuthenticatedUser = async () => {
   const session = await auth.api.getSession({
     headers: await headers(),

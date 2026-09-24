@@ -91,6 +91,9 @@ export default function AdminLaporanPage() {
       {/* FINANCIAL SUMMARY METRIC CARDS */}
       <ReportSummaryCards period={period} refreshKey={refreshKey} />
 
+      {/* REVENUE & OCCUPANCY CHART */}
+      <RevenueChart period={period} refreshKey={refreshKey} />
+
       {/* DETAILED TRANSACTION REPORT TABLE */}
       <ReportTable ref={reportTableRef} period={period} refreshKey={refreshKey} />
     </div>

@@ -24,36 +24,55 @@ interface ChartData {
 }
 
 interface RevenueChartProps {
+  period?: "today" | "week" | "month" | "year";
   refreshKey?: number;
 }
 
-export default function RevenueChart({ refreshKey }: RevenueChartProps) {
+export default function RevenueChart({ period = "week", refreshKey }: RevenueChartProps) {
   const [hoveredDay, setHoveredDay] = useState<DayData | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = () => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
 
-    fetch(`/api/admin/laporan?period=week&type=all`)
-      .then((res) => res.json())
+    fetch(`/api/admin/laporan?period=${period}&type=all`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Gagal memuat data statistik grafik.");
+        }
+        return res.json();
+      })
       .then((data) => {
-        if (!cancelled && data.chart) {
-          setChartData(data.chart);
+        if (!cancelled) {
+          if (data && data.chart) {
+            setChartData(data.chart);
+          } else {
+            setError("Data grafik tidak tersedia.");
+          }
           setLoading(false);
         }
       })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err?.message || "Terjadi kesalahan saat memuat grafik.");
+          setLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  };
 
-  if (loading || !chartData) {
+  useEffect(() => {
+    return fetchData();
+  }, [period, refreshKey]);
+
+  if (loading) {
     return (
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-xs dark:border-gray-800 dark:bg-gray-900 lg:col-span-2 flex items-center justify-center h-64">
@@ -62,6 +81,22 @@ export default function RevenueChart({ refreshKey }: RevenueChartProps) {
         <div className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-xs dark:border-gray-800 dark:bg-gray-900 flex items-center justify-center h-64">
           <Loader2 className="h-6 w-6 animate-spin text-lime-500" />
         </div>
+      </div>
+    );
+  }
+
+  if (error || !chartData) {
+    return (
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-xs dark:border-gray-800 dark:bg-gray-900 text-center py-10">
+        <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+          {error || "Data grafik tidak dapat ditampilkan."}
+        </p>
+        <button
+          onClick={fetchData}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-lime-400 px-4 py-2 text-xs font-bold text-gray-950 shadow-xs hover:bg-lime-300 transition"
+        >
+          Coba Lagi
+        </button>
       </div>
     );
   }

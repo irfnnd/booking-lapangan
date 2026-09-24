@@ -1,10 +1,73 @@
 import Link from "next/link";
-import { Users, Dumbbell, CalendarClock, Wallet, Plus, ArrowRight } from "lucide-react";
+import { Users, Dumbbell, CalendarClock, Wallet, ArrowRight } from "lucide-react";
 import DashboardCard from "@/components/admin/DashboardCard";
 import RecentBookingsTable from "@/components/admin/RecentBookingsTable";
 import RevenueChart from "@/components/admin/RevenueChart";
+import { prisma } from "@/app/prisma";
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, -1);
+
+  const [
+    totalCustomers,
+    lapanganStats,
+    pendingBookings,
+    thisMonthBookings,
+    lastMonthBookings
+  ] = await Promise.all([
+    prisma.customer.count(),
+    prisma.lapangan.groupBy({ by: ['status'], _count: { id: true } }),
+    prisma.booking.count({ where: { status: 'PENDING' } }),
+    prisma.booking.findMany({
+      where: {
+        startTime: { gte: startOfMonth },
+        OR: [{ status: "CONFIRMED" }, { payments: { some: { status: "PAID" } } }],
+      },
+      include: { lapangan: true, payments: { take: 1, orderBy: { paymentDate: "desc" } } }
+    }),
+    prisma.booking.findMany({
+      where: {
+        startTime: { gte: startOfLastMonth, lte: endOfLastMonth },
+        OR: [{ status: "CONFIRMED" }, { payments: { some: { status: "PAID" } } }],
+      },
+      include: { lapangan: true, payments: { take: 1, orderBy: { paymentDate: "desc" } } }
+    }),
+  ]);
+
+  const activeLapangan = lapanganStats.find(s => s.status.toLowerCase() === 'aktif')?._count.id || 0;
+  const totalLapangan = lapanganStats.reduce((acc, s) => acc + s._count.id, 0);
+  const maintenanceLapangan = totalLapangan - activeLapangan;
+
+  // Calculate Revenue
+  const calcRevenue = (bookings: any[]) => bookings.reduce((acc, b) => {
+    const pay = b.payments[0];
+    if (pay && pay.status === "PAID" && pay.amount > 0) return acc + pay.amount;
+    
+    if (b.status === "CONFIRMED") {
+      const durationHours = (b.endTime.getTime() - b.startTime.getTime()) / (1000 * 60 * 60);
+      return acc + Math.round(b.lapangan.price * durationHours);
+    }
+    
+    return acc;
+  }, 0);
+
+  const thisMonthRevenue = calcRevenue(thisMonthBookings);
+  const lastMonthRevenue = calcRevenue(lastMonthBookings);
+
+  let revenueTrend = "0%";
+  let isRevenuePositive = true;
+  if (lastMonthRevenue > 0) {
+    const pct = ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
+    isRevenuePositive = pct >= 0;
+    revenueTrend = `${isRevenuePositive ? "+" : ""}${pct.toFixed(1)}% vs bulan lalu`;
+  } else if (thisMonthRevenue > 0) {
+    revenueTrend = "+100% vs bulan lalu";
+    isRevenuePositive = true;
+  }
+
   return (
     <div className="space-y-8">
       {/* WELCOME / BANNER HEADER */}
@@ -34,37 +97,36 @@ export default function AdminDashboard() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <DashboardCard
             title="Total Pelanggan"
-            value="128"
+            value={totalCustomers.toString()}
             icon={Users}
             colorScheme="blue"
-            trend={{ value: "+12.5% bulan ini", isPositive: true }}
             subtitle="Pelanggan terdaftar"
           />
 
           <DashboardCard
             title="Total Lapangan"
-            value="8 Unit"
+            value={`${totalLapangan} Unit`}
             icon={Dumbbell}
             colorScheme="purple"
-            subtitle="6 Aktif, 2 Pemeliharaan"
+            subtitle={`${activeLapangan} Aktif, ${maintenanceLapangan} Pemeliharaan`}
           />
 
           <DashboardCard
             title="Booking Pending"
-            value="12"
+            value={pendingBookings.toString()}
             icon={CalendarClock}
             colorScheme="amber"
-            trend={{ value: "Perlu konfirmasi", isPositive: false }}
+            trend={pendingBookings > 0 ? { value: "Perlu konfirmasi", isPositive: false } : undefined}
             subtitle="Menunggu verifikasi"
           />
 
           <DashboardCard
             title="Total Pendapatan"
-            value="Rp 8.450.000"
+            value={`Rp ${thisMonthRevenue.toLocaleString("id-ID")}`}
             icon={Wallet}
             colorScheme="emerald"
-            trend={{ value: "+18.2% vs minggu lalu", isPositive: true }}
-            subtitle="Bulan September 2026"
+            trend={{ value: revenueTrend, isPositive: isRevenuePositive }}
+            subtitle={`Bulan ${now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`}
           />
         </div>
       </div>
