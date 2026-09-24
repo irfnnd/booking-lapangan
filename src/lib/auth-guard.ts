@@ -1,36 +1,59 @@
-// import { headers } from "next/headers";
-// import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
-// import { auth } from "@/lib/auth";
+export async function getCurrentUser() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-// export async function requireLogin() {
-//   const session = await auth.api.getSession({
-//     headers: await headers(),
-//   });
+  return session?.user ?? null;
+}
 
-//   if (!session) {
-//     redirect("/login");
-//   }
+export async function requireAdmin() {
+  const user = await getCurrentUser();
 
-//   return session;
-// }
+  if (!user) {
+    return {
+      authorized: false,
+      user: null,
+    };
+  }
 
-// export async function requireAdmin() {
-//   const session = await requireLogin();
+  if (user.role !== "ADMIN") {
+    return {
+      authorized: false,
+      user,
+    };
+  }
 
-//   if (session.user.role !== "ADMIN") {
-//     redirect("/lapangan");
-//   }
+  return {
+    authorized: true,
+    user,
+  };
+}
 
-//   return session;
-// }
+export async function requireAdminApi() {
+  const user = await getCurrentUser();
 
-// export async function requireUser() {
-//   const session = await requireLogin();
+  if (!user) {
+    return {
+      authorized: false,
+      status: 401,
+      user: null,
+    };
+  }
 
-//   if (session.user.role !== "USER") {
-//     redirect("/admin");
-//   }
+  if (user.role !== "ADMIN") {
+    return {
+      authorized: false,
+      status: 403,
+      user,
+    };
+  }
 
-//   return session;
-// }
+  return {
+    authorized: true,
+    status: 200,
+    user,
+  };
+}

@@ -1,136 +1,53 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Users,
-  UserCheck,
-  UserPlus,
-  UserX,
-  Eye,
-  MoreHorizontal,
   CalendarDays,
   Wallet,
   Mail,
-  Phone,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Loader2,
+  Eye,
 } from "lucide-react";
 
-type UserStatus = "Aktif" | "Tidak Aktif" | "Diblokir";
+type UserRole = "USER" | "ADMIN";
 
 type User = {
-  id: number;
+  id: string;
   name: string;
   email: string;
-  phone: string;
+  username: string;
   registeredAt: string;
-  lastActivity: string;
-  totalBooking: number;
-  totalTransaction: number;
-  status: UserStatus;
+  role: UserRole;
 };
 
-const users: User[] = [
-  {
-    id: 1,
-    name: "Andi Pratama",
-    email: "andi.pratama@gmail.com",
-    phone: "0812-3456-7890",
-    registeredAt: "02 Sep 2026",
-    lastActivity: "22 Sep 2026, 13:42",
-    totalBooking: 12,
-    totalTransaction: 1850000,
-    status: "Aktif",
-  },
-  {
-    id: 2,
-    name: "Rizky Maulana",
-    email: "rizky.maulana@gmail.com",
-    phone: "0813-7788-9900",
-    registeredAt: "05 Sep 2026",
-    lastActivity: "22 Sep 2026, 11:20",
-    totalBooking: 8,
-    totalTransaction: 1200000,
-    status: "Aktif",
-  },
-  {
-    id: 3,
-    name: "Fajar Ramadhan",
-    email: "fajar.ramadhan@gmail.com",
-    phone: "0852-1122-3344",
-    registeredAt: "08 Sep 2026",
-    lastActivity: "21 Sep 2026, 20:15",
-    totalBooking: 5,
-    totalTransaction: 750000,
-    status: "Aktif",
-  },
-  {
-    id: 4,
-    name: "Dimas Saputra",
-    email: "dimas.saputra@gmail.com",
-    phone: "0821-5566-7788",
-    registeredAt: "10 Sep 2026",
-    lastActivity: "18 Sep 2026, 16:30",
-    totalBooking: 3,
-    totalTransaction: 450000,
-    status: "Tidak Aktif",
-  },
-  {
-    id: 5,
-    name: "Bagus Setiawan",
-    email: "bagus.setiawan@gmail.com",
-    phone: "0811-2233-4455",
-    registeredAt: "12 Sep 2026",
-    lastActivity: "22 Sep 2026, 09:12",
-    totalBooking: 9,
-    totalTransaction: 1350000,
-    status: "Aktif",
-  },
-  {
-    id: 6,
-    name: "Yoga Firmansyah",
-    email: "yoga.firmansyah@gmail.com",
-    phone: "0853-9988-7766",
-    registeredAt: "14 Sep 2026",
-    lastActivity: "17 Sep 2026, 14:10",
-    totalBooking: 2,
-    totalTransaction: 300000,
-    status: "Diblokir",
-  },
-  {
-    id: 7,
-    name: "Ilham Akbar",
-    email: "ilham.akbar@gmail.com",
-    phone: "0822-6677-8899",
-    registeredAt: "16 Sep 2026",
-    lastActivity: "21 Sep 2026, 19:40",
-    totalBooking: 6,
-    totalTransaction: 900000,
-    status: "Aktif",
-  },
-  {
-    id: 8,
-    name: "Reza Kurniawan",
-    email: "reza.kurniawan@gmail.com",
-    phone: "0819-4455-6677",
-    registeredAt: "18 Sep 2026",
-    lastActivity: "20 Sep 2026, 10:25",
-    totalBooking: 4,
-    totalTransaction: 600000,
-    status: "Aktif",
-  },
-];
+type FormData = {
+  name: string;
+  email: string;
+  username: string;
+  password: string;
+  role: UserRole;
+};
 
-function formatRupiah(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
+function formatDate(value: string | null) {
+  if (!value) return "-";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function getInitials(name: string) {
+  if (!name) return "?";
+
   return name
     .split(" ")
     .map((word) => word[0])
@@ -139,201 +56,431 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+function getRoleLabel(role: UserRole) {
+  return role === "ADMIN" ? "Admin" : "Pengguna";
+}
+
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "Semua" | UserStatus
-  >("Semua");
+
+  const [userList, setUserList] = useState<User[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [detailUser, setDetailUser] = useState<User | null>(null);
+
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    email: "",
+    username: "",
+    password: "",
+    role: "USER",
+  });
+
+  // =========================
+  // GET USERS
+  // =========================
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/admin/pengguna", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Gagal mengambil data pengguna"
+        );
+      }
+
+      setUserList(data);
+    } catch (error) {
+      console.error("FETCH USERS ERROR:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Gagal mengambil data pengguna"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadUsers = async () => {
+      try {
+        const response = await fetch("/api/admin/pengguna");
+
+        if (!response.ok) {
+          throw new Error("Gagal mengambil data pengguna");
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setUserList(data);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "Gagal mengambil data pengguna:",
+            error
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadUsers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // =========================
+  // SEARCH
+  // =========================
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const keyword = search.toLowerCase();
+    const keyword = search.toLowerCase().trim();
 
-      const matchesSearch =
+    if (!keyword) {
+      return userList;
+    }
+
+    return userList.filter((user) => {
+      return (
         user.name.toLowerCase().includes(keyword) ||
         user.email.toLowerCase().includes(keyword) ||
-        user.phone.includes(keyword);
-
-      const matchesStatus =
-        statusFilter === "Semua" || user.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+        user.username.toLowerCase().includes(keyword)
+      );
     });
-  }, [search, statusFilter]);
+  }, [search, userList]);
 
-  const totalUsers = users.length;
-  const activeUsers = users.filter((u) => u.status === "Aktif").length;
-  const inactiveUsers = users.filter(
-    (u) => u.status === "Tidak Aktif"
-  ).length;
-  const blockedUsers = users.filter(
-    (u) => u.status === "Diblokir"
-  ).length;
+  // =========================
+  // STATISTICS
+  // =========================
+
+  const totalUsers = userList.length;
+
+  // =========================
+  // OPEN CREATE MODAL
+  // =========================
+
+  const openCreateModal = () => {
+    setEditingUser(null);
+
+    setFormData({
+      name: "",
+      email: "",
+      username: "",
+      password: "",
+      role: "USER",
+    });
+
+    setIsModalOpen(true);
+  };
+
+  // =========================
+  // OPEN EDIT MODAL
+  // =========================
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+
+    setFormData({
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      password: "",
+      role: user.role,
+    });
+
+    setIsModalOpen(true);
+  };
+
+  // =========================
+  // CLOSE MODAL
+  // =========================
+
+  const closeModal = () => {
+    if (saving) return;
+
+    setIsModalOpen(false);
+    setEditingUser(null);
+
+    setFormData({
+      name: "",
+      email: "",
+      username: "",
+      password: "",
+      role: "USER",
+    });
+  };
+
+  // =========================
+  // CREATE
+  // =========================
+
+  const handleCreate = async () => {
+    if (
+      !formData.email ||
+      !formData.username ||
+      !formData.password
+    ) {
+      alert("Email, username, dan password wajib diisi.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const response = await fetch("/api/admin/pengguna", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Gagal menambahkan pengguna"
+        );
+      }
+
+      closeModal();
+
+      await fetchUsers();
+    } catch (error) {
+      console.error("CREATE USER ERROR:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Gagal menambahkan pengguna"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // =========================
+  // UPDATE
+  // =========================
+
+  const handleUpdate = async () => {
+    if (!editingUser) return;
+
+    if (!formData.email || !formData.username) {
+      alert("Email dan username wajib diisi.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const response = await fetch(
+        `/api/admin/pengguna/${editingUser.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Gagal mengubah pengguna"
+        );
+      }
+
+      closeModal();
+
+      await fetchUsers();
+    } catch (error) {
+      console.error("UPDATE USER ERROR:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Gagal mengubah pengguna"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // =========================
+  // DELETE
+  // =========================
+
+  const handleDelete = async (user: User) => {
+    const confirmed = window.confirm(
+      `Apakah kamu yakin ingin menghapus pengguna "${user.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `/api/admin/pengguna/${user.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Gagal menghapus pengguna"
+        );
+      }
+
+      await fetchUsers();
+    } catch (error) {
+      console.error("DELETE USER ERROR:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Gagal menghapus pengguna"
+      );
+    }
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* =========================
+          STATISTICS
+      ========================= */}
 
-      {/* USER TABLE */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Total Pengguna"
+          value={totalUsers}
+          subtitle="Pengguna terdaftar"
+          icon={Users}
+          iconClass="bg-lime-100 text-lime-700 dark:bg-lime-400/10 dark:text-lime-400"
+        />
+
+        <StatCard
+          title="Total Booking"
+          value="-"
+          subtitle="Data booking dikelola di halaman booking"
+          icon={CalendarDays}
+          iconClass="bg-blue-100 text-blue-700 dark:bg-blue-400/10 dark:text-blue-400"
+        />
+
+        <StatCard
+          title="Total Transaksi"
+          value="-"
+          subtitle="Data transaksi dikelola di halaman transaksi"
+          icon={Wallet}
+          iconClass="bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
+        />
+      </div>
+
+      {/* =========================
+          USER TABLE
+      ========================= */}
+
       <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        {/* TABLE HEADER */}
+        {/* HEADER */}
+
         <div className="border-b border-gray-100 p-5 dark:border-gray-800 sm:p-6">
-          <div className="mb-5">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">
-              Daftar Pengguna
-            </h2>
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                Daftar Pengguna
+              </h2>
 
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Kelola dan pantau seluruh pengguna yang terdaftar.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            {/* SEARCH */}
-            <div className="relative w-full lg:max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari nama, email, atau nomor HP..."
-                className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
-              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Kelola seluruh pengguna yang terdaftar di
+                aplikasi.
+              </p>
             </div>
 
-            {/* FILTER */}
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(
-                  e.target.value as "Semua" | UserStatus
-                )
-              }
-              className="h-11 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium text-gray-700 outline-none focus:border-lime-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+            <button
+              onClick={openCreateModal}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white transition hover:bg-gray-800 dark:bg-lime-400 dark:text-gray-950 dark:hover:bg-lime-300"
             >
-              <option value="Semua">Semua Status</option>
-              <option value="Aktif">Aktif</option>
-              <option value="Tidak Aktif">Tidak Aktif</option>
-              <option value="Diblokir">Diblokir</option>
-            </select>
+              <Plus className="h-4 w-4" />
+              Tambah Pengguna
+            </button>
+          </div>
+
+          <div className="relative w-full lg:max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama, email, atau username..."
+              className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
+            />
           </div>
         </div>
 
         {/* TABLE */}
+
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] text-left">
+          <table className="w-full min-w-[900px] text-left">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 <th className="px-6 py-4">Pengguna</th>
                 <th className="px-6 py-4">Kontak</th>
+                <th className="px-6 py-4">Username</th>
                 <th className="px-6 py-4">Terdaftar</th>
-                <th className="px-6 py-4">Aktivitas Terakhir</th>
-                <th className="px-6 py-4">Booking</th>
-                <th className="px-6 py-4">Transaksi</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Aksi</th>
+                <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4 text-right">
+                  Aksi
+                </th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="transition hover:bg-gray-50/80 dark:hover:bg-gray-800/40"
-                >
-                  {/* USER */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-900 text-xs font-black text-lime-400 dark:bg-gray-800">
-                        {getInitials(user.name)}
-                      </div>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-16 text-center"
+                  >
+                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-lime-500" />
 
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">
-                          {user.name}
-                        </p>
-
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          ID #{String(user.id).padStart(4, "0")}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* CONTACT */}
-                  <td className="px-6 py-5">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                        <Mail className="h-3.5 w-3.5 text-gray-400" />
-                        {user.email}
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                        <Phone className="h-3.5 w-3.5 text-gray-400" />
-                        {user.phone}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* REGISTERED */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                      <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
-                      {user.registeredAt}
-                    </div>
-                  </td>
-
-                  {/* LAST ACTIVITY */}
-                  <td className="px-6 py-5">
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {user.lastActivity}
+                    <p className="mt-3 text-sm text-gray-500">
+                      Memuat data pengguna...
                     </p>
                   </td>
-
-                  {/* BOOKING */}
-                  <td className="px-6 py-5">
-                    <span className="inline-flex rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                      {user.totalBooking}x
-                    </span>
-                  </td>
-
-                  {/* TRANSACTION */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800 dark:text-gray-200">
-                      <Wallet className="h-3.5 w-3.5 text-gray-400" />
-                      {formatRupiah(user.totalTransaction)}
-                    </div>
-                  </td>
-
-                  {/* STATUS */}
-                  <td className="px-6 py-5">
-                    <StatusBadge status={user.status} />
-                  </td>
-
-                  {/* ACTION */}
-                  <td className="px-6 py-5">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        title="Lihat detail"
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-lime-400 hover:bg-lime-50 hover:text-lime-700 dark:border-gray-700 dark:hover:bg-lime-400/10 dark:hover:text-lime-400"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-
-                      <button
-                        title="Menu"
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
                 </tr>
-              ))}
-
-              {filteredUsers.length === 0 && (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-14 text-center">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-16 text-center"
+                  >
                     <Users className="mx-auto mb-3 h-8 w-8 text-gray-300" />
 
                     <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
@@ -341,16 +488,119 @@ export default function AdminUsersPage() {
                     </p>
 
                     <p className="mt-1 text-xs text-gray-400">
-                      Coba gunakan kata kunci atau filter yang berbeda.
+                      Belum ada pengguna yang sesuai dengan
+                      pencarian.
                     </p>
                   </td>
                 </tr>
+              ) : (
+                filteredUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="transition hover:bg-gray-50/80 dark:hover:bg-gray-800/40"
+                  >
+                    {/* USER */}
+
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-900 text-xs font-black text-lime-400 dark:bg-gray-800">
+                          {getInitials(user.name)}
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">
+                            {user.name || "Tanpa Nama"}
+                          </p>
+
+                          <p className="max-w-[180px] truncate text-xs text-gray-500 dark:text-gray-400">
+                            ID {user.id}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* EMAIL */}
+
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+
+                        <span className="max-w-[220px] truncate">
+                          {user.email}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* USERNAME */}
+
+                    <td className="px-6 py-5">
+                      <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        @{user.username}
+                      </span>
+                    </td>
+
+                    {/* REGISTERED */}
+
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+
+                        {formatDate(user.registeredAt)}
+                      </div>
+                    </td>
+
+                    {/* ROLE */}
+
+                    <td className="px-6 py-5">
+                      <span
+                        className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-bold ${
+                          user.role === "ADMIN"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-400/10 dark:text-purple-400"
+                            : "bg-blue-100 text-blue-700 dark:bg-blue-400/10 dark:text-blue-400"
+                        }`}
+                      >
+                        {getRoleLabel(user.role)}
+                      </span>
+                    </td>
+
+                    {/* ACTION */}
+
+                    <td className="px-6 py-5">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setDetailUser(user)}
+                          title="Lihat detail"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-lime-400 hover:bg-lime-50 hover:text-lime-700 dark:border-gray-700 dark:hover:bg-lime-400/10 dark:hover:text-lime-400"
+                        >
+                           <Eye className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => openEditModal(user)}
+                          title="Edit"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 dark:border-gray-700 dark:hover:bg-blue-400/10 dark:hover:text-blue-400"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(user)}
+                          title="Hapus"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-gray-700 dark:hover:bg-red-400/10 dark:hover:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
 
-        {/* PAGINATION */}
+        {/* PAGINATION INFO */}
+
         <div className="flex items-center justify-between border-t border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Menampilkan{" "}
@@ -376,16 +626,261 @@ export default function AdminUsersPage() {
               1
             </button>
 
-            <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 dark:border-gray-700">
-              2
-            </button>
-
-            <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 dark:border-gray-700">
+            <button
+              disabled
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-400 disabled:opacity-50 dark:border-gray-700"
+            >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
       </div>
+
+      {/* =========================
+          CREATE / EDIT MODAL
+      ========================= */}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-gray-800">
+              <div>
+                <h2 className="text-lg font-black text-gray-900 dark:text-white">
+                  {editingUser
+                    ? "Edit Pengguna"
+                    : "Tambah Pengguna"}
+                </h2>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  {editingUser
+                    ? "Perbarui informasi pengguna."
+                    : "Tambahkan pengguna baru ke database."}
+                </p>
+              </div>
+
+              <button
+                onClick={closeModal}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5">
+              {/* NAME */}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  Nama
+                </label>
+
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      name: e.target.value,
+                    })
+                  }
+                  placeholder="Nama pengguna"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* EMAIL */}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  Email *
+                </label>
+
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      email: e.target.value,
+                    })
+                  }
+                  placeholder="email@example.com"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* USERNAME */}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  Username *
+                </label>
+
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      username: e.target.value,
+                    })
+                  }
+                  placeholder="username"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* ROLE */}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  Role *
+                </label>
+
+                <select
+                  value={formData.role}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      role: e.target.value as UserRole,
+                    })
+                  }
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="USER">Pengguna</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
+              {/* PASSWORD */}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  Password{" "}
+                  {editingUser
+                    ? "(kosongkan jika tidak diubah)"
+                    : "*"}
+                </label>
+
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      password: e.target.value,
+                    })
+                  }
+                  placeholder={
+                    editingUser
+                      ? "Password baru"
+                      : "Password"
+                  }
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-gray-100 p-5 dark:border-gray-800">
+              <button
+                onClick={closeModal}
+                disabled={saving}
+                className="h-10 rounded-xl border border-gray-200 px-4 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={
+                  editingUser ? handleUpdate : handleCreate
+                }
+                disabled={saving}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-gray-900 px-5 text-sm font-bold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-lime-400 dark:text-gray-950 dark:hover:bg-lime-300"
+              >
+                {saving && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+
+                {editingUser
+                  ? "Simpan Perubahan"
+                  : "Tambah Pengguna"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================
+          DETAIL MODAL
+      ========================= */}
+
+      {detailUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-gray-800">
+              <h2 className="text-lg font-black text-gray-900 dark:text-white">
+                Detail Pengguna
+              </h2>
+
+              <button
+                onClick={() => setDetailUser(null)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-5 p-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-900 text-sm font-black text-lime-400 dark:bg-gray-800">
+                  {getInitials(detailUser.name)}
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-gray-900 dark:text-white">
+                    {detailUser.name || "Tanpa Nama"}
+                  </h3>
+
+                  <p className="text-xs text-gray-500">
+                    @{detailUser.username}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <DetailRow
+                  label="Email"
+                  value={detailUser.email}
+                />
+
+                <DetailRow
+                  label="Username"
+                  value={`@${detailUser.username}`}
+                />
+
+                <DetailRow
+                  label="Terdaftar"
+                  value={formatDate(detailUser.registeredAt)}
+                />
+
+                <DetailRow
+                  label="Role"
+                  value={getRoleLabel(detailUser.role)}
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 p-5 dark:border-gray-800">
+              <button
+                onClick={() => setDetailUser(null)}
+                className="h-10 w-full rounded-xl bg-gray-900 text-sm font-bold text-white dark:bg-lime-400 dark:text-gray-950"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -435,25 +930,25 @@ function StatCard({
 }
 
 /* =========================
-   STATUS BADGE
+   DETAIL ROW
 ========================= */
 
-function StatusBadge({ status }: { status: UserStatus }) {
-  const styles = {
-    Aktif:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
-    "Tidak Aktif":
-      "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-    Diblokir:
-      "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
-  };
-
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${styles[status]}`}
-    >
-      <span className="mr-1.5">●</span>
-      {status}
-    </span>
+    <div className="flex items-center justify-between gap-4 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800">
+      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        {label}
+      </span>
+
+      <span className="text-right text-xs font-bold text-gray-900 dark:text-white">
+        {value}
+      </span>
+    </div>
   );
 }

@@ -16,8 +16,10 @@ model User {
   role          UserRole  @default(USER)
   createdAt     DateTime
   updatedAt     DateTime
-  accounts      Account[]
   sessions      Session[]
+  accounts      Account[]
+
+  customer      Customer?
 
   @@map("user")
 }
@@ -84,15 +86,18 @@ model Lapangan {
 }
 
 model Customer {
-  id          String    @id @default(uuid())
-  userId      String    @unique
-  email       String    @unique
+  id          String  @id @default(uuid())
+  userId      String  @unique
+  email       String  @unique
   name        String?
-  username    String    @unique
+  username    String  @unique
   password    String
   picture_url String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  user        User @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   bookings    Booking[]
 }
 
